@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 )
@@ -65,9 +64,17 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	case "Notification":
 		event := &Notification{}
 
-		err = readEvent(req.Body, event)
-		if err != nil {
-			break
+		if req.Header.Get("x-amz-sns-rawdelivery") == "true" {
+			err = readRawNotification(req, event)
+			if err != nil {
+				break
+			}
+		} else {
+
+			err = readEvent(req.Body, event)
+			if err != nil {
+				break
+			}
 		}
 
 		err = h.handler.Notification(ctx, event)
@@ -109,7 +116,7 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 
 // readEvent reads and parses
 func readEvent(reader io.Reader, event interface{}) error {
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return err
 	}
@@ -119,5 +126,20 @@ func readEvent(reader io.Reader, event interface{}) error {
 		return err
 	}
 
+	return nil
+}
+
+func readRawNotification(req *http.Request, event *Notification) error {
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		return err
+	}
+
+	event.Message = string(data)
+	event.MessageID = req.Header.Get("x-amz-sns-message-id")
+	event.TopicARN = req.Header.Get("x-amz-sns-topic-arn")
+	//event.Subject = req.Header.Get("")
+	//event.Timestamp = req.Header.Get("")
+	//event.UnsubscribeURL = req.Header.Get("")
 	return nil
 }
