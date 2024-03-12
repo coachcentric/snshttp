@@ -1,1 +1,1 @@
-module github.com/doctor-eval/snshttp
+module github.com/coachcentric/snshttp
