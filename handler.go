@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -42,9 +43,9 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var err error
 
 	if !h.credentials.Check(req) {
+		log.Println("no credentials found")
 		resp.Header().Set("WWW-Authenticate", `Basic realm="ses"`)
 		http.Error(resp, "Unauthorized", http.StatusUnauthorized)
-
 		return
 	}
 
@@ -68,33 +69,44 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		if req.Header.Get("x-amz-sns-rawdelivery") == "true" {
 			err = readRawNotification(req, event)
 			if err != nil {
+				log.Println("sns-notification: error reading raw notification:", err)
 				break
 			}
 		} else {
 
 			err = readEvent(req.Body, event)
 			if err != nil {
+				log.Println("sns-notification: error reading event:", err)
 				break
 			}
 		}
 
 		err = h.handler.Notification(ctx, event)
+		if err != nil {
+			log.Println("sns-notification: error dispatching event:", err)
+		}
 
 	case "SubscriptionConfirmation":
 		event := &SubscriptionConfirmation{}
 
 		err = readEvent(req.Body, event)
 		if err != nil {
+			log.Println("sns-subscription-confirmation: error reading event:", err)
 			break
 		}
 
 		err = h.handler.SubscriptionConfirmation(ctx, event)
+		if err != nil {
+			log.Println("sns-subscription-confirmation: error confirming subscription:", err)
+			break
+		}
 
 	case "UnsubscribeConfirmation":
 		event := &UnsubscribeConfirmation{}
 
 		err = readEvent(req.Body, event)
 		if err != nil {
+			log.Println("sns-unsubscribe-confirmation: error reading event:", err)
 			break
 		}
 
@@ -103,7 +115,8 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// Amazon (or someone else?) sent an unknown type
 	default:
 		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "missing X-Amz-Sns-Message-Type header")
+		log.Println("missing or unknown X-Amz-Sns-Message-Type header")
+		fmt.Fprintf(resp, "missing or unknown X-Amz-Sns-Message-Type header")
 		return
 	}
 
@@ -113,6 +126,7 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Success! Signals Amazon to mark message as received.
+	log.Println("notification success")
 	resp.WriteHeader(http.StatusNoContent)
 }
 

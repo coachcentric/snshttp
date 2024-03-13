@@ -3,6 +3,7 @@ package snshttp
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -25,13 +26,16 @@ type SubscriptionConfirmation struct {
 // should start sending notification. A request is made to the SubscribeURL. An
 // error will be returned if the subscription has already been confirmed.
 func (e *SubscriptionConfirmation) Confirm(ctx context.Context) error {
+	log.Println("confirming subscription")
 	req, err := http.NewRequest("GET", e.SubscribeURL, nil)
 	if err != nil {
+		log.Println("unable to create confirmation request:", err)
 		return err
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Println("unable to submit confirmation request:", err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -39,6 +43,7 @@ func (e *SubscriptionConfirmation) Confirm(ctx context.Context) error {
 	// Server is expected to return 200 OK but we can treat any 200 level code as
 	// success.
 	if !(200 <= resp.StatusCode && resp.StatusCode < 300) {
+		log.Println("confirmation request failed with remote status", resp.StatusCode)
 		return fmt.Errorf("server returned error status=%d", resp.StatusCode)
 	}
 
