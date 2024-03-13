@@ -3,6 +3,7 @@ package snshttp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -101,7 +102,8 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 
 	// Amazon (or someone else?) sent an unknown type
 	default:
-		http.NotFound(resp, req)
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "missing X-Amz-Sns-Message-Type header")
 		return
 	}
 
