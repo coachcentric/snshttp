@@ -126,7 +126,6 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Success! Signals Amazon to mark message as received.
-	log.Println("notification success")
 	resp.WriteHeader(http.StatusNoContent)
 }
 
