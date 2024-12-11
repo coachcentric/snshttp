@@ -2,7 +2,10 @@
 // webhooks from Amazon SNS.
 package snshttp
 
-import "context"
+import (
+	"context"
+	"net/http"
+)
 
 // EventHandler methods are called for each event received from Amazon SNS.
 type EventHandler interface {
@@ -13,7 +16,7 @@ type EventHandler interface {
 
 	// Notification events contain the messages published to the SNS topic. This
 	// is the most common type of event.
-	Notification(ctx context.Context, event *Notification) error
+	Notification(ctx context.Context, req *http.Request, event *Notification) error
 
 	// UnsubscribeConfirmation events are sent when the subscription has been
 	// canceled and gives the consumer a chance to resubscribe. Note that the

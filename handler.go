@@ -81,7 +81,7 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			}
 		}
 
-		err = h.handler.Notification(ctx, event)
+		err = h.handler.Notification(ctx, req, event)
 		if err != nil {
 			log.Println("sns-notification: error dispatching event:", err)
 		}
